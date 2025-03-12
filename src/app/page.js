@@ -1,103 +1,170 @@
-import Image from "next/image";
+"use client";
+import { useState, useEffect } from "react";
 
-export default function Home() {
+export default function FlashCardApp() {
+  const [flashcards, setFlashcards] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [showAnswer, setShowAnswer] = useState(false);
+  const [isStudying, setIsStudying] = useState(false);
+  const [lives, setLives] = useState(5);
+  const [progress, setProgress] = useState({ correct: 0, incorrect: 0 });
+  const [darkMode, setDarkMode] = useState(false);
+  const [deckName, setDeckName] = useState("General");
+  const [decks, setDecks] = useState({ General: [] });
+
+  useEffect(() => {
+    const storedData = JSON.parse(localStorage.getItem("flashcardData"));
+    if (storedData) {
+      setDecks(storedData.decks);
+      setDeckName(storedData.deckName);
+      setFlashcards(storedData.decks[storedData.deckName] || []);
+    } else {
+      const demoFlashcards = [
+        { question: "What is React?", answer: "A JavaScript library for building UIs." },
+        { question: "What is Next.js?", answer: "A React framework for server-side rendering." },
+      ];
+      setDecks({ General: demoFlashcards });
+      localStorage.setItem(
+        "flashcardData",
+        JSON.stringify({ decks: { General: demoFlashcards }, deckName: "General" })
+      );
+    }
+  }, []);
+
+  const saveData = (newDecks, newDeckName) => {
+    setDecks(newDecks);
+    setFlashcards(newDecks[newDeckName] || []);
+    setDeckName(newDeckName);
+    localStorage.setItem(
+      "flashcardData",
+      JSON.stringify({ decks: newDecks, deckName: newDeckName })
+    );
+  };
+
+  const addFlashcard = () => {
+    const question = prompt("Enter question:");
+    const answer = prompt("Enter answer:");
+    if (question && answer) {
+      const newDecks = { ...decks, [deckName]: [...flashcards, { question, answer }] };
+      saveData(newDecks, deckName);
+    }
+  };
+
+  const editFlashcard = (index) => {
+    const question = prompt("Edit question:", flashcards[index].question);
+    const answer = prompt("Edit answer:", flashcards[index].answer);
+    if (question && answer) {
+      const updatedFlashcards = flashcards.map((card, i) =>
+        i === index ? { question, answer } : card
+      );
+      const newDecks = { ...decks, [deckName]: updatedFlashcards };
+      saveData(newDecks, deckName);
+    }
+  };
+
+  const deleteFlashcard = (index) => {
+    const newDecks = { ...decks, [deckName]: flashcards.filter((_, i) => i !== index) };
+    saveData(newDecks, deckName);
+  };
+
+  const nextCard = (correct) => {
+    if (correct) {
+      setProgress((prev) => ({ ...prev, correct: prev.correct + 1 }));
+    } else {
+      setProgress((prev) => ({ ...prev, incorrect: prev.incorrect + 1 }));
+      setFlashcards([...flashcards, flashcards[currentIndex]]);
+      setLives((prev) => prev - 1);
+    }
+    setShowAnswer(false);
+    setCurrentIndex((prev) => (prev + 1) % flashcards.length);
+  };
+
+  const changeDeck = (newDeck) => {
+    saveData(decks, newDeck);
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.js
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div
+      className={`p-6 max-w-lg mx-auto ${
+        darkMode ? "bg-gray-900 text-white" : "bg-white text-black"
+      }`}
+    >
+      <h1 className="text-xl font-bold">Flash Card Study System</h1>
+      <button
+        className="mt-2 px-3 py-1 rounded bg-gray-500 text-white"
+        onClick={() => setDarkMode(!darkMode)}
+      >
+        {darkMode ? "Light Mode" : "Dark Mode"}
+      </button>
+      <div className="mt-4">
+        <label>Choose Deck:</label>
+        <select
+          className="ml-2 p-1 border"
+          value={deckName}
+          onChange={(e) => changeDeck(e.target.value)}
+        >
+          {Object.keys(decks).map((deck) => (
+            <option key={deck} value={deck}>
+              {deck}
+            </option>
+          ))}
+        </select>
+      </div>
+      {isStudying ? (
+        <div className="mt-4 p-4 border rounded">
+          <p className="text-lg">{flashcards[currentIndex]?.question || "No cards available"}</p>
+          {showAnswer && (
+            <p className="text-md mt-2 text-green-500">{flashcards[currentIndex]?.answer}</p>
+          )}
+          <button
+            className="bg-blue-500 text-white px-3 py-1 mt-2 rounded"
+            onClick={() => setShowAnswer(!showAnswer)}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            {showAnswer ? "Hide Answer" : "Show Answer"}
+          </button>
+          <button
+            className="bg-green-500 text-white px-3 py-1 ml-2 rounded"
+            onClick={() => nextCard(true)}
           >
-            Read our docs
-          </a>
+            Correct
+          </button>
+          <button
+            className="bg-red-500 text-white px-3 py-1 ml-2 rounded"
+            onClick={() => nextCard(false)}
+          >
+            Incorrect
+          </button>
+          <p className="mt-2">Lives: {lives}/5</p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      ) : (
+        <div className="mt-4">
+          {flashcards.map((card, index) => (
+            <div key={index} className="p-2 border-b flex justify-between">
+              <span>{card.question}</span>
+              <div>
+                <button className="text-blue-500 mr-2" onClick={() => editFlashcard(index)}>
+                  Edit
+                </button>
+                <button className="text-red-500" onClick={() => deleteFlashcard(index)}>
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+          <button className="bg-green-500 text-white px-3 py-1 mt-2 rounded" onClick={addFlashcard}>
+            Add Flashcard
+          </button>
+        </div>
+      )}
+      <button
+        className="bg-purple-500 text-white px-3 py-1 mt-4 rounded"
+        onClick={() => setIsStudying(!isStudying)}
+      >
+        {isStudying ? "Back to List" : "Start Studying"}
+      </button>
+      <p className="mt-4">
+        Progress: {progress.correct} Correct / {progress.incorrect} Incorrect
+      </p>
     </div>
   );
 }
