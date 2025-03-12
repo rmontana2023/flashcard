@@ -22,12 +22,13 @@ export default function FlashCardApp() {
       const demoFlashcards = [
         { question: "What is React?", answer: "A JavaScript library for building UIs." },
         { question: "What is Next.js?", answer: "A React framework for server-side rendering." },
+        { question: "What is useState?", answer: "A React hook for state management." },
+        { question: "What is useEffect?", answer: "A React hook for handling side effects." },
       ];
-      setDecks({ General: demoFlashcards });
-      localStorage.setItem(
-        "flashcardData",
-        JSON.stringify({ decks: { General: demoFlashcards }, deckName: "General" })
-      );
+      const demoData = { decks: { General: demoFlashcards }, deckName: "General" };
+      setDecks(demoData.decks);
+      setFlashcards(demoData.decks.General);
+      localStorage.setItem("flashcardData", JSON.stringify(demoData));
     }
   }, []);
 
@@ -72,7 +73,9 @@ export default function FlashCardApp() {
       setProgress((prev) => ({ ...prev, correct: prev.correct + 1 }));
     } else {
       setProgress((prev) => ({ ...prev, incorrect: prev.incorrect + 1 }));
-      setFlashcards([...flashcards, flashcards[currentIndex]]);
+      if (!flashcards.includes(flashcards[currentIndex])) {
+        setFlashcards([...flashcards, flashcards[currentIndex]]);
+      }
       setLives((prev) => prev - 1);
     }
     setShowAnswer(false);
