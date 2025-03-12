@@ -45,9 +45,13 @@ export default function FlashCardApp() {
   const addFlashcard = () => {
     const question = prompt("Enter question:");
     const answer = prompt("Enter answer:");
-    if (question && answer) {
-      const newDecks = { ...decks, [deckName]: [...flashcards, { question, answer }] };
-      saveData(newDecks, deckName);
+    const selectedDeck = prompt("Enter deck name:", deckName);
+    if (question && answer && selectedDeck) {
+      const newDecks = {
+        ...decks,
+        [selectedDeck]: [...(decks[selectedDeck] || []), { question, answer }],
+      };
+      saveData(newDecks, selectedDeck);
     }
   };
 
