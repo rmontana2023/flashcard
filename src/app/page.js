@@ -7,7 +7,7 @@ export default function FlashCardApp() {
   const [showAnswer, setShowAnswer] = useState(false);
   const [isStudying, setIsStudying] = useState(false);
   const [lives, setLives] = useState(5);
-  const [progress, setProgress] = useState({ correct: 0, incorrect: 0 });
+  const [progress, setProgress] = useState({ correct: 0, incorrect: 0, reviewed: 0 });
   const [darkMode, setDarkMode] = useState(false);
   const [deckName, setDeckName] = useState("General");
   const [decks, setDecks] = useState({ General: [] });
@@ -69,13 +69,14 @@ export default function FlashCardApp() {
   };
 
   const nextCard = (correct) => {
-    if (correct) {
-      setProgress((prev) => ({ ...prev, correct: prev.correct + 1 }));
-    } else {
-      setProgress((prev) => ({ ...prev, incorrect: prev.incorrect + 1 }));
-      if (!flashcards.includes(flashcards[currentIndex])) {
-        setFlashcards([...flashcards, flashcards[currentIndex]]);
-      }
+    setProgress((prev) => ({
+      correct: correct ? prev.correct + 1 : prev.correct,
+      incorrect: !correct ? prev.incorrect + 1 : prev.incorrect,
+      reviewed: prev.reviewed + 1,
+    }));
+
+    if (!correct) {
+      setFlashcards([...flashcards, flashcards[currentIndex]]);
       setLives((prev) => prev - 1);
     }
     setShowAnswer(false);
@@ -166,7 +167,8 @@ export default function FlashCardApp() {
         {isStudying ? "Back to List" : "Start Studying"}
       </button>
       <p className="mt-4">
-        Progress: {progress.correct} Correct / {progress.incorrect} Incorrect
+        Progress: {progress.reviewed} Reviewed | {progress.correct} Correct | {progress.incorrect}{" "}
+        Incorrect
       </p>
     </div>
   );
